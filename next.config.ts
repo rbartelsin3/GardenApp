@@ -10,6 +10,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  i18n: undefined,
 };
 
-export default withPWA(nextConfig);
+export default withPWA(nextConfig as any);
