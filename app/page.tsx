@@ -94,6 +94,7 @@ export default function Home() {
         tips: data.tips,
         category: data.category || "tuin",
         image: imageSrc,
+        databaseImage: data.databaseImage, // <-- DE FIX
         date: new Date().toLocaleDateString("nl-NL"),
         rating: 0,
       };
