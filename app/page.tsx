@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Camera from "@/components/Camera";
 
 interface SavedPlant {
@@ -18,6 +18,8 @@ interface SavedPlant {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"ontdekken" | "mijn-tuin" | "mijn-huis" | "mijn-natuur">("ontdekken");
   const [showCamera, setShowCamera] = useState(false);
+  const [showImageChoice, setShowImageChoice] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
   const [scanResult, setScanResult] = useState<SavedPlant | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -26,19 +28,13 @@ export default function Home() {
   const [selectedPlant, setSelectedPlant] = useState<SavedPlant | null>(null);
   const [selectedCategoryForNewPlant, setSelectedCategoryForNewPlant] = useState<"tuin" | "huis" | "natuur">("tuin");
 
-  // Simuleer laden uit localstorage
   useEffect(() => {
     const saved = localStorage.getItem("mijn-tuin");
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Migratie: voeg categorie toe aan oude planten
-      const migrated = parsed.map((p: any) => ({
-        ...p,
-        category: p.category || "tuin"
-      }));
+      const migrated = parsed.map((p: any) => ({ ...p, category: p.category || "tuin" }));
       setSavedPlants(migrated);
     }
-
     const tutorialDone = localStorage.getItem("tutorial-done");
     if (!tutorialDone) {
       setShowTutorial(true);
@@ -71,22 +67,19 @@ export default function Home() {
   const handleCapture = async (imageSrc: string) => {
     setIsScanning(true);
     setShowCamera(false);
+    setShowImageChoice(false);
     setScanResult(null);
-
     try {
       const response = await fetch("/api/identify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageSrc }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "API Fout");
       }
-
       const data = await response.json();
-      
       const newPlant: SavedPlant = {
         id: Math.random().toString(36).substr(2, 9),
         name: data.name,
@@ -94,7 +87,7 @@ export default function Home() {
         tips: data.tips,
         category: data.category || "tuin",
         image: imageSrc,
-        databaseImage: data.databaseImage, // <-- DE FIX
+        databaseImage: data.databaseImage,
         date: new Date().toLocaleDateString("nl-NL"),
         rating: 0,
       };
@@ -106,6 +99,19 @@ export default function Home() {
     } finally {
       setIsScanning(false);
     }
+  };
+  
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          handleCapture(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+    setShowImageChoice(false);
   };
 
   const updateResultRating = (rating: number) => {
@@ -168,326 +174,112 @@ export default function Home() {
 
   const DecorativePlants = () => (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-20">
-      {/* Bloem linksboven */}
-      <svg className="absolute -top-10 -left-10 w-48 h-48 text-emerald-800 rotate-12" viewBox="0 0 100 100" fill="currentColor">
-        <path d="M50 50c0-15 10-25 20-25s20 10 20 25-10 25-20 25-20-10-20-25zM50 50c15 0 25 10 25 20s-10 20-25 20-25-10-25-20 10-20 25-20zM50 50c0 15-10 25-20 25s-20-10-20-25 10-25 20-25 20 10 20 25zM50 50c-15 0-25-10-25-20s10-20 25-20 25 10 25 20-10 20-25 20z" />
-        <circle cx="50" cy="50" r="10" fill="#8b5e34" />
-      </svg>
-      {/* Blaadje rechtsmidden */}
-      <svg className="absolute top-1/2 -right-12 w-40 h-40 text-emerald-900 -rotate-45" viewBox="0 0 100 100" fill="currentColor">
-        <path d="M10 90 Q 50 10 90 10 Q 50 90 10 90" />
-        <path d="M10 90 L 90 10" stroke="#fdfaf5" strokeWidth="2" fill="none" />
-      </svg>
-      {/* Tulpje linksonder */}
-      <svg className="absolute -bottom-10 left-1/4 w-32 h-32 text-[#8b5e34]" viewBox="0 0 100 100" fill="currentColor">
-        <path d="M50 80 L 50 40 M30 40 Q 50 10 70 40 L 65 60 L 35 60 Z" />
-        <path d="M50 80 Q 20 70 20 50 M50 80 Q 80 70 80 50" stroke="currentColor" strokeWidth="4" fill="none" />
-      </svg>
+      <svg className="absolute -top-10 -left-10 w-48 h-48 text-emerald-800 rotate-12" viewBox="0 0 100 100" fill="currentColor"><path d="M50 50c0-15 10-25 20-25s20 10 20 25-10 25-20 25-20-10-20-25zM50 50c15 0 25 10 25 20s-10 20-25 20-25-10-25-20 10-20 25-20zM50 50c0 15-10 25-20 25s-20-10-20-25 10-25 20-25 20 10 20 25zM50 50c-15 0-25-10-25-20s10-20 25-20 25 10 25 20-10 20-25 20z" /><circle cx="50" cy="50" r="10" fill="#8b5e34" /></svg>
+      <svg className="absolute top-1/2 -right-12 w-40 h-40 text-emerald-900 -rotate-45" viewBox="0 0 100 100" fill="currentColor"><path d="M10 90 Q 50 10 90 10 Q 50 90 10 90" /><path d="M10 90 L 90 10" stroke="#fdfaf5" strokeWidth="2" fill="none" /></svg>
+      <svg className="absolute -bottom-10 left-1/4 w-32 h-32 text-[#8b5e34]" viewBox="0 0 100 100" fill="currentColor"><path d="M50 80 L 50 40 M30 40 Q 50 10 70 40 L 65 60 L 35 60 Z" /><path d="M50 80 Q 20 70 20 50 M50 80 Q 80 70 80 50" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
     </div>
   );
 
   return (
-    <main className="flex-1 flex flex-col bg-[#fdfaf5] relative overflow-hidden">
+    <main className="flex-1 flex flex-col bg-[#fdfaf5] relative overflow-x-hidden">
+      <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
       <DecorativePlants />
-      {/* Navigatie Tabs */}
       <nav className="flex justify-start sm:justify-center gap-4 sm:gap-8 border-b border-stone-200 bg-[#fdfaf5]/80 backdrop-blur-md sticky top-0 z-50 pt-6 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("ontdekken")}
-          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
-            activeTab === "ontdekken"
-              ? "text-emerald-800 border-b-4 border-emerald-800"
-              : "text-stone-400 hover:text-stone-600"
-          }`}
-        >
-          Ontdekken
-        </button>
-        <button
-          onClick={() => setActiveTab("mijn-tuin")}
-          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
-            activeTab === "mijn-tuin"
-              ? "text-emerald-800 border-b-4 border-emerald-800"
-              : "text-stone-400 hover:text-stone-600"
-          }`}
-        >
-          Mijn Tuin
-        </button>
-        <button
-          onClick={() => setActiveTab("mijn-huis")}
-          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
-            activeTab === "mijn-huis"
-              ? "text-emerald-800 border-b-4 border-emerald-800"
-              : "text-stone-400 hover:text-stone-600"
-          }`}
-        >
-          Mijn Huis
-        </button>
-        <button
-          onClick={() => setActiveTab("mijn-natuur")}
-          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
-            activeTab === "mijn-natuur"
-              ? "text-emerald-800 border-b-4 border-emerald-800"
-              : "text-stone-400 hover:text-stone-600"
-          }`}
-        >
-          Mijn Natuur
-        </button>
+        <button onClick={() => setActiveTab("ontdekken")} className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${activeTab === "ontdekken" ? "text-emerald-800 border-b-4 border-emerald-800" : "text-stone-400 hover:text-stone-600"}`}>Ontdekken</button>
+        <button onClick={() => setActiveTab("mijn-tuin")} className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${activeTab === "mijn-tuin" ? "text-emerald-800 border-b-4 border-emerald-800" : "text-stone-400 hover:text-stone-600"}`}>Mijn Tuin</button>
+        <button onClick={() => setActiveTab("mijn-huis")} className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${activeTab === "mijn-huis" ? "text-emerald-800 border-b-4 border-emerald-800" : "text-stone-400 hover:text-stone-600"}`}>Mijn Huis</button>
+        <button onClick={() => setActiveTab("mijn-natuur")} className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${activeTab === "mijn-natuur" ? "text-emerald-800 border-b-4 border-emerald-800" : "text-stone-400 hover:text-stone-600"}`}>Mijn Natuur</button>
       </nav>
 
       <div className="flex-1 overflow-y-auto pb-20">
         {activeTab === "ontdekken" ? (
           <section className="px-6 py-12 flex flex-col items-center max-w-2xl mx-auto">
-            <div className="bg-emerald-800 text-emerald-50 px-4 py-1 rounded-full text-sm font-bold mb-6 shadow-sm">
-              Hoi daar, plantenliefhebber! 🌱
-            </div>
-            <h1 className="text-4xl font-extrabold text-stone-900 mb-4 text-center leading-tight">
-              Wat groeit er in jouw tuin?
-            </h1>
-            <p className="text-stone-600 text-lg text-center mb-10 leading-relaxed">
-              Maak een fotootje van een plant die je niet kent, dan vertellen wij je precies wat het is en hoe je hem vrolijk houdt.
-            </p>
-            
-            <button
-              onClick={() => setShowCamera(true)}
-              disabled={isScanning}
-              className="bg-[#8b5e34] hover:bg-[#724a29] text-white font-bold py-5 px-10 rounded-2xl shadow-xl shadow-stone-200 transform transition active:scale-95 text-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <div className="bg-emerald-800 text-emerald-50 px-4 py-1 rounded-full text-sm font-bold mb-6 shadow-sm">Hoi daar, plantenliefhebber! 🌱</div>
+            <h1 className="text-4xl font-extrabold text-stone-900 mb-4 text-center leading-tight">Wat groeit er in jouw tuin?</h1>
+            <p className="text-stone-600 text-lg text-center mb-10 leading-relaxed">Maak een fotootje van een plant die je niet kent, dan vertellen wij je precies wat het is en hoe je hem vrolijk houdt.</p>
+            <button onClick={() => setShowImageChoice(true)} disabled={isScanning} className="bg-[#8b5e34] hover:bg-[#724a29] text-white font-bold py-5 px-10 rounded-2xl shadow-xl shadow-stone-200 transform transition active:scale-95 text-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
               {isScanning ? (
-                <>
-                  <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Bezig met herkennen...
-                </>
+                <><svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Bezig met herkennen...</>
               ) : (
-                <>
-                  <svg className="w-6 h-6 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Plant Scannen
-                </>
+                <><svg className="w-6 h-6 text-emerald-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> Plant Scannen</>
               )}
             </button>
-
-            {/* Scan Resultaat Card */}
             {scanResult && (
               <div className="mt-12 bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="p-8 bg-[#fdfaf5]">
-                  <div className="flex justify-between items-start mb-2">
-                    <h2 className="text-2xl font-black text-stone-900">{scanResult.name}</h2>
-                    <StarRating rating={scanResult.rating} onRate={updateResultRating} interactive />
-                  </div>
-                  <div className="flex items-center gap-2 mb-6">
-                    <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-md text-sm font-bold border border-emerald-200">
-                      {scanResult.maintenance}
-                    </span>
-                    <div className="relative">
-                      <select
-                        value={selectedCategoryForNewPlant}
-                        onChange={(e) => setSelectedCategoryForNewPlant(e.target.value as "tuin" | "huis" | "natuur")}
-                        className="appearance-none bg-stone-100 text-stone-600 px-3 py-1 pr-8 rounded-md text-sm font-bold border border-stone-200 capitalize cursor-pointer"
-                      >
-                        <option value="tuin">Mijn Tuin</option>
-                        <option value="huis">Mijn Huis</option>
-                        <option value="natuur">Mijn Natuur</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600">
-                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tinder-like layout for image comparison */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                    <div className="flex-1 bg-stone-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-stone-100">
-                      <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2">Jouw Foto</h3>
-                      {scanResult.image && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={scanResult.image} alt="Jouw scan" className="w-full h-48 object-cover rounded-xl shadow-sm" />
-                      )}
-                    </div>
-                    <div className="flex-1 bg-emerald-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-100">
-                      <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2">Match Suggestie</h3>
-                      {scanResult.databaseImage && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={scanResult.databaseImage} alt="Database match" className="w-full h-48 object-cover rounded-xl shadow-sm" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
-                      <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 italic">Onze Tip</h3>
-                      <p className="text-stone-800 leading-relaxed text-lg font-medium">&quot;{scanResult.tips}&quot;</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 mt-8">
-                    <button
-                      onClick={savePlant}
-                      className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-100"
-                    >
-                      Ja, klopt! Opslaan in Mijn {selectedCategoryForNewPlant === "tuin" ? "Tuin" : selectedCategoryForNewPlant === "huis" ? "Huis" : "Natuur"}
-                    </button>
-                    <button
-                      onClick={() => setScanResult(null)}
-                      className="px-6 py-4 text-stone-400 hover:text-stone-600 font-bold"
-                    >
-                      Nee, klopt niet
-                    </button>
-                  </div>
+                  <div className="flex justify-between items-start mb-2"><h2 className="text-2xl font-black text-stone-900">{scanResult.name}</h2><StarRating rating={scanResult.rating} onRate={updateResultRating} interactive /></div>
+                  <div className="flex items-center gap-2 mb-6"><span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-md text-sm font-bold border border-emerald-200">{scanResult.maintenance}</span><div className="relative"><select value={selectedCategoryForNewPlant} onChange={(e) => setSelectedCategoryForNewPlant(e.target.value as "tuin" | "huis" | "natuur")} className="appearance-none bg-stone-100 text-stone-600 px-3 py-1 pr-8 rounded-md text-sm font-bold border border-stone-200 capitalize cursor-pointer"><option value="tuin">Mijn Tuin</option><option value="huis">Mijn Huis</option><option value="natuur">Mijn Natuur</option></select><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600"><svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg></div></div></div>
+                  <div className="flex flex-col sm:flex-row gap-4 mb-8"><div className="flex-1 bg-stone-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-stone-100"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2">Jouw Foto</h3>{scanResult.image && (<img src={scanResult.image} alt="Jouw scan" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div><div className="flex-1 bg-emerald-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-100"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2">Match Suggestie</h3>{scanResult.databaseImage && (<img src={scanResult.databaseImage} alt="Database match" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div></div>
+                  <div className="space-y-4"><div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 italic">Onze Tip</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">&quot;{scanResult.tips}&quot;</p></div></div>
+                  <div className="flex gap-4 mt-8"><button onClick={savePlant} className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-100">Ja, klopt! Opslaan in Mijn {selectedCategoryForNewPlant === "tuin" ? "Tuin" : selectedCategoryForNewPlant === "huis" ? "Huis" : "Natuur"}</button><button onClick={() => setScanResult(null)} className="px-6 py-4 text-stone-400 hover:text-stone-600 font-bold">Nee, klopt niet</button></div>
                 </div>
               </div>
             )}
           </section>
         ) : (
           <section className="px-6 py-12 max-w-4xl mx-auto">
-              <h1 className="text-3xl font-black text-stone-900 mb-8 flex items-center gap-3">
-                {activeTab === "mijn-tuin" && "Mijn Buitenparadijs"}
-                {activeTab === "mijn-huis" && "Mijn Binnenjungle"}
-                {activeTab === "mijn-natuur" && "Mijn Natuurvondsten"}
-                <span className="text-sm font-normal text-stone-400 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
-                  {savedPlants.filter(p => `mijn-${p.category}` === activeTab).length} planten
-                </span>
-              </h1>
-
+              <h1 className="text-3xl font-black text-stone-900 mb-8 flex items-center gap-3">{activeTab === "mijn-tuin" && "Mijn Buitenparadijs"}{activeTab === "mijn-huis" && "Mijn Binnenjungle"}{activeTab === "mijn-natuur" && "Mijn Natuurvondsten"}<span className="text-sm font-normal text-stone-400 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">{savedPlants.filter(p => `mijn-${p.category}` === activeTab).length} planten</span></h1>
               {savedPlants.filter(p => `mijn-${p.category}` === activeTab).length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {savedPlants
-                    .filter(p => `mijn-${p.category}` === activeTab)
-                    .map((plant) => (
-                    <div 
-                      key={plant.id} 
-                      onClick={() => setSelectedPlant(plant)}
-                      className="bg-white p-5 rounded-[2rem] shadow-sm border border-stone-100 flex gap-5 items-center hover:shadow-md transition-shadow cursor-pointer group"
-                    >
-          ...
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-[#fdfaf5]">
-                      <img src={plant.image} alt={plant.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  {savedPlants.filter(p => `mijn-${p.category}` === activeTab).map((plant) => (
+                    <div key={plant.id} onClick={() => setSelectedPlant(plant)} className="bg-white p-5 rounded-[2rem] shadow-sm border border-stone-100 flex gap-5 items-center hover:shadow-md transition-shadow cursor-pointer group">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-[#fdfaf5]"><img src={plant.image} alt={plant.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /></div>
+                      <div className="flex-1"><div className="flex justify-between items-start"><div><h3 className="font-bold text-stone-900 text-lg leading-tight">{plant.name}</h3><StarRating rating={plant.rating} /></div><button onClick={(e) => { e.stopPropagation(); deletePlant(plant.id); }} className="text-stone-300 hover:text-red-400 transition-colors p-1" title="Verwijder plant"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><p className="text-xs text-stone-400 mb-2 uppercase tracking-tight font-bold">Gescand op {plant.date}</p><span className="text-xs bg-emerald-800 text-emerald-50 px-3 py-1 rounded-full font-bold">{plant.maintenance}</span></div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-stone-900 text-lg leading-tight">{plant.name}</h3>
-                          <StarRating rating={plant.rating} />
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deletePlant(plant.id);
-                          }}
-                          className="text-stone-300 hover:text-red-400 transition-colors p-1"
-                          title="Verwijder plant"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="text-xs text-stone-400 mb-2 uppercase tracking-tight font-bold">Gescand op {plant.date}</p>
-                      <span className="text-xs bg-emerald-800 text-emerald-50 px-3 py-1 rounded-full font-bold">
-                        {plant.maintenance}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-[2.5rem] p-16 text-center border-2 border-dashed border-stone-200 shadow-inner">
-                <div className="text-5xl mb-6 opacity-50">
-                  {activeTab === "mijn-tuin" && "🏡"}
-                  {activeTab === "mijn-huis" && "🪴"}
-                  {activeTab === "mijn-natuur" && "🌲"}
+                  ))}
                 </div>
-                <p className="text-stone-500 text-lg mb-8 max-w-xs mx-auto">
-                  {activeTab === "mijn-tuin" && "Je tuin is nog even leeg... Tijd om je buitenparadijs te vullen!"}
-                  {activeTab === "mijn-huis" && "Nog geen kamerplanten gescand? Maak het gezellig in huis!"}
-                  {activeTab === "mijn-natuur" && "Nog geen natuurvondsten? Trek de wandelschoenen aan!"}
-                </p>
-                <button
-                  onClick={() => setActiveTab("ontdekken")}
-                  className="bg-[#8b5e34] hover:bg-[#724a29] text-white font-bold py-3 px-8 rounded-full shadow-lg transition"
-                >
-                  Ga direct scannen
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="bg-white rounded-[2.5rem] p-16 text-center border-2 border-dashed border-stone-200 shadow-inner"><div className="text-5xl mb-6 opacity-50">{activeTab === "mijn-tuin" && "🏡"}{activeTab === "mijn-huis" && "🪴"}{activeTab === "mijn-natuur" && "🌲"}</div><p className="text-stone-500 text-lg mb-8 max-w-xs mx-auto">{activeTab === "mijn-tuin" && "Je tuin is nog even leeg... Tijd om je buitenparadijs te vullen!"}{activeTab === "mijn-huis" && "Nog geen kamerplanten gescand? Maak het gezellig in huis!"}{activeTab === "mijn-natuur" && "Nog geen natuurvondsten? Trek de wandelschoenen aan!"}</p><button onClick={() => setActiveTab("ontdekken")} className="bg-[#8b5e34] hover:bg-[#724a29] text-white font-bold py-3 px-8 rounded-full shadow-lg transition">Ga direct scannen</button></div>
+              )}
           </section>
         )}
       </div>
-
-      {showCamera && (
-        <Camera
-          onCapture={handleCapture}
-          onClose={() => setShowCamera(false)}
-        />
-      )}
-
-      {/* Tutorial Overlay */}
-      {showTutorial && (
+      {showCamera && (<Camera onCapture={handleCapture} onClose={() => setShowCamera(false)} />)}
+      
+      {showImageChoice && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-emerald-800 animate-in zoom-in-95 duration-300 text-left">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex gap-1">
-                {tutorialSteps.map((_, i) => (
-                  <div 
-                    key={i} 
-                    className={`h-1.5 rounded-full transition-all ${i === tutorialStep ? "w-6 bg-emerald-800" : "w-2 bg-stone-200"}`}
-                  />
-                ))}
-              </div>
-              <button onClick={finishTutorial} className="text-stone-300 hover:text-stone-500 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-emerald-800 animate-in zoom-in-95 duration-300 text-center">
+            <h2 className="text-2xl font-black text-stone-900 mb-6">Hoe wil je scannen?</h2>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => {
+                  setShowImageChoice(false);
+                  setShowCamera(true);
+                }}
+                className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95"
+              >
+                Maak een foto
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95"
+              >
+                Kies uit galerij
               </button>
             </div>
-            
-            <h2 className="text-2xl font-black text-stone-900 mb-3">{tutorialSteps[tutorialStep].title}</h2>
-            <p className="text-stone-600 leading-relaxed mb-8">{tutorialSteps[tutorialStep].text}</p>
-            
             <button
-              onClick={() => {
-                if (tutorialStep < tutorialSteps.length - 1) {
-                  setTutorialStep(tutorialStep + 1);
-                } else {
-                  finishTutorial();
-                }
-              }}
-              className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95"
+              onClick={() => setShowImageChoice(false)}
+              className="mt-6 text-stone-500 hover:text-stone-700 font-bold"
             >
-              {tutorialSteps[tutorialStep].button}
+              Annuleren
             </button>
           </div>
         </div>
       )}
 
-      {/* Selected Plant Detail Overlay */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-emerald-800 animate-in zoom-in-95 duration-300 text-left"><div className="flex justify-between items-start mb-6"><div className="flex gap-1">{tutorialSteps.map((_, i) => (<div key={i} className={`h-1.5 rounded-full transition-all ${i === tutorialStep ? "w-6 bg-emerald-800" : "w-2 bg-stone-200"}`}/>))}</div><button onClick={finishTutorial} className="text-stone-300 hover:text-stone-500 transition-colors"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div><h2 className="text-2xl font-black text-stone-900 mb-3">{tutorialSteps[tutorialStep].title}</h2><p className="text-stone-600 leading-relaxed mb-8">{tutorialSteps[tutorialStep].text}</p><button onClick={() => { if (tutorialStep < tutorialSteps.length - 1) { setTutorialStep(tutorialStep + 1); } else { finishTutorial(); } }} className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95">{tutorialSteps[tutorialStep].button}</button></div>
+        </div>
+      )}
       {selectedPlant && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 relative flex flex-col max-h-[90vh]">
-            <button 
-              onClick={() => setSelectedPlant(null)}
-              className="absolute top-4 right-4 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-full text-stone-900 hover:text-emerald-800 transition-colors shadow-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="h-64 relative flex-shrink-0">
-              <img src={selectedPlant.image} alt={selectedPlant.name} className="w-full h-full object-cover" />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-stone-900/80 to-transparent p-8">
-                <h2 className="text-3xl font-black text-white">{selectedPlant.name}</h2>
-              </div>
-            </div>
-
+            <button onClick={() => setSelectedPlant(null)} className="absolute top-4 right-4 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-full text-stone-900 hover:text-emerald-800 transition-colors shadow-lg"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <div className="h-64 relative flex-shrink-0"><img src={selectedPlant.image} alt={selectedPlant.name} className="w-full h-full object-cover" /><div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-stone-900/80 to-transparent p-8"><h2 className="text-3xl font-black text-white">{selectedPlant.name}</h2></div></div>
             <div className="p-8 bg-[#fdfaf5] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <span className="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-bold border border-emerald-200">
-                  {selectedPlant.maintenance}
-                </span>
+                <span className="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-bold border border-emerald-200">{selectedPlant.maintenance}</span>
                 <div className="relative">
                   <select
                     value={selectedPlant.category}
@@ -498,46 +290,23 @@ export default function Home() {
                     <option value="huis">Mijn Huis</option>
                     <option value="natuur">Mijn Natuur</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <StarRating rating={selectedPlant.rating} />
-                  <span className="text-[10px] text-stone-400 uppercase font-black mt-1 tracking-widest">Je Rating</span>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600"><svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg></div>
                 </div>
               </div>
-
               <div className="space-y-6">
-                {selectedPlant.databaseImage && (
-                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col items-center">
-                    <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 italic">Identificatie Bevestigd</h3>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedPlant.databaseImage} alt="Bevestigde plant" className="w-full h-48 object-cover rounded-xl shadow-sm" />
-                  </div>
-                )}
-                <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                  <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 italic">Verzorgingsadvies</h3>
-                  <p className="text-stone-800 leading-relaxed text-lg font-medium">{selectedPlant.tips}</p>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-xs text-stone-400 font-bold">Gescand op {selectedPlant.date}</p>
-                </div>
+                {selectedPlant.databaseImage && (<div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col items-center"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 italic">Identificatie Bevestigd</h3><img src={selectedPlant.databaseImage} alt="Bevestigde plant" className="w-full h-48 object-cover rounded-xl shadow-sm" /></div>)}
+                <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 italic">Verzorgingsadvies</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">{selectedPlant.tips}</p></div>
               </div>
-
-              <button
-                onClick={() => setSelectedPlant(null)}
-                className="w-full mt-8 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95"
-              >
-                Sluiten
-              </button>
+              <div className="mt-8 pt-6 border-t border-stone-200 flex flex-col items-center">
+                <h3 className="text-sm font-black text-stone-500 uppercase tracking-wider mb-3">Jouw Beoordeling</h3>
+                <StarRating rating={selectedPlant.rating} interactive={false} />
+              </div>
+              <div className="text-center mt-4"><p className="text-xs text-stone-400 font-bold">Gescand op {selectedPlant.date}</p></div>
+              <button onClick={() => setSelectedPlant(null)} className="w-full mt-8 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95">Sluiten</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Footer Info */}
     </main>
   );
 }

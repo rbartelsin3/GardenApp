@@ -42,13 +42,13 @@ async function getWikipediaImage(commonName: string, scientificName: string): Pr
     }
   };
 
-  // 1. Try with the common name
-  let imageUrl = await fetchImageForTerm(commonName);
+  // 1. Try with the scientific name (more specific)
+  let imageUrl = await fetchImageForTerm(scientificName);
   if (imageUrl) return imageUrl;
 
-  // 2. If that fails, try with the scientific name
-  console.log(`Common name search failed, trying scientific name: "${scientificName}"`);
-  imageUrl = await fetchImageForTerm(scientificName);
+  // 2. If that fails, fall back to the common name
+  console.log(`Scientific name search failed, trying common name: "${commonName}"`);
+  imageUrl = await fetchImageForTerm(commonName);
   if (imageUrl) return imageUrl;
   
   console.log(`Could not find any Wikipedia image for "${commonName}" or "${scientificName}"`);
