@@ -189,7 +189,7 @@ export default function Home() {
     <main className="flex-1 flex flex-col bg-[#fdfaf5] relative overflow-hidden">
       <DecorativePlants />
       {/* Navigatie Tabs */}
-      <nav className="flex justify-center gap-4 sm:gap-8 border-b border-stone-200 bg-[#fdfaf5]/80 backdrop-blur-md sticky top-0 z-50 pt-6 overflow-x-auto no-scrollbar">
+      <nav className="flex justify-start sm:justify-center gap-4 sm:gap-8 border-b border-stone-200 bg-[#fdfaf5]/80 backdrop-blur-md sticky top-0 z-50 pt-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab("ontdekken")}
           className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
@@ -465,24 +465,24 @@ export default function Home() {
       {/* Selected Plant Detail Overlay */}
       {selectedPlant && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] overflow-hidden max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 relative">
+          <div className="bg-white rounded-[2.5rem] max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 relative flex flex-col max-h-[90vh]">
             <button 
               onClick={() => setSelectedPlant(null)}
-              className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full text-stone-900 hover:text-emerald-800 transition-colors shadow-lg"
+              className="absolute top-4 right-4 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-full text-stone-900 hover:text-emerald-800 transition-colors shadow-lg"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <div className="h-64 relative">
+            <div className="h-64 relative flex-shrink-0">
               <img src={selectedPlant.image} alt={selectedPlant.name} className="w-full h-full object-cover" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-stone-900/80 to-transparent p-8">
                 <h2 className="text-3xl font-black text-white">{selectedPlant.name}</h2>
               </div>
             </div>
 
-            <div className="p-8 bg-[#fdfaf5]">
+            <div className="p-8 bg-[#fdfaf5] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <span className="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-bold border border-emerald-200">
                   {selectedPlant.maintenance}
