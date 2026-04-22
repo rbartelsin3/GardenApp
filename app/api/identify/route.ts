@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       {
         "name": "De volledige naam van de plant (Latijnse naam tussen haakjes)",
         "maintenance": "Kies uit: Zeer makkelijk, Lekker makkelijk, Gemiddeld, Uitdagend",
+        "category": "Kies uit: tuin, huis, natuur (tuin voor tuinplanten, huis voor kamerplanten, natuur voor wilde planten)",
         "tips": "Geef kort en krachtig 2 of 3 verzorgingstips in het Nederlands, specifiek over water geven, zonlicht en snoeien."
       }
     `;
@@ -47,6 +48,9 @@ export async function POST(req: Request) {
     if (!plantData) {
       throw new Error("Geen geldige data ontvangen van AI");
     }
+
+    // Voeg databaseImage toe aan plantData na parsing
+    plantData.databaseImage = "https://via.placeholder.com/300x200.png?text=Plant+" + encodeURIComponent(plantData.name || 'Onbekend');
 
     return NextResponse.json(plantData);
   } catch (error) {

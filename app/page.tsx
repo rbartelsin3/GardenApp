@@ -8,13 +8,15 @@ interface SavedPlant {
   name: string;
   maintenance: string;
   tips: string;
+  category: "tuin" | "huis" | "natuur";
   image?: string;
+  databaseImage?: string;
   date: string;
   rating: number;
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"ontdekken" | "mijn-tuin">("ontdekken");
+  const [activeTab, setActiveTab] = useState<"ontdekken" | "mijn-tuin" | "mijn-huis" | "mijn-natuur">("ontdekken");
   const [showCamera, setShowCamera] = useState(false);
   const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
   const [scanResult, setScanResult] = useState<SavedPlant | null>(null);
@@ -22,11 +24,20 @@ export default function Home() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<SavedPlant | null>(null);
+  const [selectedCategoryForNewPlant, setSelectedCategoryForNewPlant] = useState<"tuin" | "huis" | "natuur">("tuin");
 
   // Simuleer laden uit localstorage
   useEffect(() => {
     const saved = localStorage.getItem("mijn-tuin");
-    if (saved) setSavedPlants(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migratie: voeg categorie toe aan oude planten
+      const migrated = parsed.map((p: any) => ({
+        ...p,
+        category: p.category || "tuin"
+      }));
+      setSavedPlants(migrated);
+    }
 
     const tutorialDone = localStorage.getItem("tutorial-done");
     if (!tutorialDone) {
@@ -81,11 +92,13 @@ export default function Home() {
         name: data.name,
         maintenance: data.maintenance,
         tips: data.tips,
+        category: data.category || "tuin",
         image: imageSrc,
         date: new Date().toLocaleDateString("nl-NL"),
         rating: 0,
       };
       setScanResult(newPlant);
+      setSelectedCategoryForNewPlant(newPlant.category);
     } catch (error: any) {
       console.error(error);
       alert(error.message || "Oeps! Er ging iets mis bij het herkennen van de plant.");
@@ -102,11 +115,13 @@ export default function Home() {
 
   const savePlant = () => {
     if (scanResult) {
-      const updated = [scanResult, ...savedPlants];
+      const updatedScanResult = { ...scanResult, category: selectedCategoryForNewPlant };
+      const updated = [updatedScanResult, ...savedPlants];
       setSavedPlants(updated);
       localStorage.setItem("mijn-tuin", JSON.stringify(updated));
+      const targetTab = `mijn-${selectedCategoryForNewPlant}` as "mijn-tuin" | "mijn-huis" | "mijn-natuur";
       setScanResult(null);
-      setActiveTab("mijn-tuin");
+      setActiveTab(targetTab);
     }
   };
 
@@ -114,6 +129,17 @@ export default function Home() {
     const updated = savedPlants.filter(p => p.id !== id);
     setSavedPlants(updated);
     localStorage.setItem("mijn-tuin", JSON.stringify(updated));
+  };
+
+  const updatePlantCategory = (id: string, newCategory: "tuin" | "huis" | "natuur") => {
+    const updatedPlants = savedPlants.map(plant => 
+      plant.id === id ? { ...plant, category: newCategory } : plant
+    );
+    setSavedPlants(updatedPlants);
+    localStorage.setItem("mijn-tuin", JSON.stringify(updatedPlants));
+    if (selectedPlant && selectedPlant.id === id) {
+      setSelectedPlant(prev => prev ? { ...prev, category: newCategory } : null);
+    }
   };
 
   const StarRating = ({ rating, onRate, interactive = false }: { rating: number, onRate?: (r: number) => void, interactive?: boolean }) => {
@@ -163,10 +189,10 @@ export default function Home() {
     <main className="flex-1 flex flex-col bg-[#fdfaf5] relative overflow-hidden">
       <DecorativePlants />
       {/* Navigatie Tabs */}
-      <nav className="flex justify-center gap-8 border-b border-stone-200 bg-[#fdfaf5]/80 backdrop-blur-md sticky top-0 z-50 pt-6">
+      <nav className="flex justify-center gap-4 sm:gap-8 border-b border-stone-200 bg-[#fdfaf5]/80 backdrop-blur-md sticky top-0 z-50 pt-6 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("ontdekken")}
-          className={`pb-4 px-2 font-bold transition-colors ${
+          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
             activeTab === "ontdekken"
               ? "text-emerald-800 border-b-4 border-emerald-800"
               : "text-stone-400 hover:text-stone-600"
@@ -176,13 +202,33 @@ export default function Home() {
         </button>
         <button
           onClick={() => setActiveTab("mijn-tuin")}
-          className={`pb-4 px-2 font-bold transition-colors ${
+          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
             activeTab === "mijn-tuin"
               ? "text-emerald-800 border-b-4 border-emerald-800"
               : "text-stone-400 hover:text-stone-600"
           }`}
         >
           Mijn Tuin
+        </button>
+        <button
+          onClick={() => setActiveTab("mijn-huis")}
+          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
+            activeTab === "mijn-huis"
+              ? "text-emerald-800 border-b-4 border-emerald-800"
+              : "text-stone-400 hover:text-stone-600"
+          }`}
+        >
+          Mijn Huis
+        </button>
+        <button
+          onClick={() => setActiveTab("mijn-natuur")}
+          className={`pb-4 px-2 font-bold transition-colors whitespace-nowrap ${
+            activeTab === "mijn-natuur"
+              ? "text-emerald-800 border-b-4 border-emerald-800"
+              : "text-stone-400 hover:text-stone-600"
+          }`}
+        >
+          Mijn Natuur
         </button>
       </nav>
 
@@ -226,15 +272,6 @@ export default function Home() {
             {/* Scan Resultaat Card */}
             {scanResult && (
               <div className="mt-12 bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="relative h-64">
-                  {scanResult.image && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={scanResult.image} alt="Je scan" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute top-4 right-4 bg-emerald-800 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg">
-                    MATCH GEVONDEN
-                  </div>
-                </div>
                 <div className="p-8 bg-[#fdfaf5]">
                   <div className="flex justify-between items-start mb-2">
                     <h2 className="text-2xl font-black text-stone-900">{scanResult.name}</h2>
@@ -244,8 +281,40 @@ export default function Home() {
                     <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-md text-sm font-bold border border-emerald-200">
                       {scanResult.maintenance}
                     </span>
+                    <div className="relative">
+                      <select
+                        value={selectedCategoryForNewPlant}
+                        onChange={(e) => setSelectedCategoryForNewPlant(e.target.value as "tuin" | "huis" | "natuur")}
+                        className="appearance-none bg-stone-100 text-stone-600 px-3 py-1 pr-8 rounded-md text-sm font-bold border border-stone-200 capitalize cursor-pointer"
+                      >
+                        <option value="tuin">Mijn Tuin</option>
+                        <option value="huis">Mijn Huis</option>
+                        <option value="natuur">Mijn Natuur</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg>
+                      </div>
+                    </div>
                   </div>
-                  
+
+                  {/* Tinder-like layout for image comparison */}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                    <div className="flex-1 bg-stone-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-stone-100">
+                      <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2">Jouw Foto</h3>
+                      {scanResult.image && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={scanResult.image} alt="Jouw scan" className="w-full h-48 object-cover rounded-xl shadow-sm" />
+                      )}
+                    </div>
+                    <div className="flex-1 bg-emerald-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-100">
+                      <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2">Match Suggestie</h3>
+                      {scanResult.databaseImage && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={scanResult.databaseImage} alt="Database match" className="w-full h-48 object-cover rounded-xl shadow-sm" />
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-4">
                     <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm">
                       <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 italic">Onze Tip</h3>
@@ -258,13 +327,13 @@ export default function Home() {
                       onClick={savePlant}
                       className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-100"
                     >
-                      Opslaan in Mijn Tuin
+                      Ja, klopt! Opslaan in Mijn {selectedCategoryForNewPlant === "tuin" ? "Tuin" : selectedCategoryForNewPlant === "huis" ? "Huis" : "Natuur"}
                     </button>
                     <button
                       onClick={() => setScanResult(null)}
                       className="px-6 py-4 text-stone-400 hover:text-stone-600 font-bold"
                     >
-                      Wissen
+                      Nee, klopt niet
                     </button>
                   </div>
                 </div>
@@ -273,21 +342,26 @@ export default function Home() {
           </section>
         ) : (
           <section className="px-6 py-12 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-black text-stone-900 mb-8 flex items-center gap-3">
-              Mijn Groene Paradijsje
-              <span className="text-sm font-normal text-stone-400 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
-                {savedPlants.length} planten
-              </span>
-            </h1>
+              <h1 className="text-3xl font-black text-stone-900 mb-8 flex items-center gap-3">
+                {activeTab === "mijn-tuin" && "Mijn Buitenparadijs"}
+                {activeTab === "mijn-huis" && "Mijn Binnenjungle"}
+                {activeTab === "mijn-natuur" && "Mijn Natuurvondsten"}
+                <span className="text-sm font-normal text-stone-400 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
+                  {savedPlants.filter(p => `mijn-${p.category}` === activeTab).length} planten
+                </span>
+              </h1>
 
-            {savedPlants.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {savedPlants.map((plant) => (
-                  <div 
-                    key={plant.id} 
-                    onClick={() => setSelectedPlant(plant)}
-                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-stone-100 flex gap-5 items-center hover:shadow-md transition-shadow cursor-pointer group"
-                  >
+              {savedPlants.filter(p => `mijn-${p.category}` === activeTab).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {savedPlants
+                    .filter(p => `mijn-${p.category}` === activeTab)
+                    .map((plant) => (
+                    <div 
+                      key={plant.id} 
+                      onClick={() => setSelectedPlant(plant)}
+                      className="bg-white p-5 rounded-[2rem] shadow-sm border border-stone-100 flex gap-5 items-center hover:shadow-md transition-shadow cursor-pointer group"
+                    >
+          ...
                     <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-[#fdfaf5]">
                       <img src={plant.image} alt={plant.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     </div>
@@ -320,8 +394,16 @@ export default function Home() {
               </div>
             ) : (
               <div className="bg-white rounded-[2.5rem] p-16 text-center border-2 border-dashed border-stone-200 shadow-inner">
-                <div className="text-5xl mb-6 opacity-50">🌿</div>
-                <p className="text-stone-500 text-lg mb-8 max-w-xs mx-auto">Je tuin is nog even leeg... Tijd om op ontdekkingstocht te gaan!</p>
+                <div className="text-5xl mb-6 opacity-50">
+                  {activeTab === "mijn-tuin" && "🏡"}
+                  {activeTab === "mijn-huis" && "🪴"}
+                  {activeTab === "mijn-natuur" && "🌲"}
+                </div>
+                <p className="text-stone-500 text-lg mb-8 max-w-xs mx-auto">
+                  {activeTab === "mijn-tuin" && "Je tuin is nog even leeg... Tijd om je buitenparadijs te vullen!"}
+                  {activeTab === "mijn-huis" && "Nog geen kamerplanten gescand? Maak het gezellig in huis!"}
+                  {activeTab === "mijn-natuur" && "Nog geen natuurvondsten? Trek de wandelschoenen aan!"}
+                </p>
                 <button
                   onClick={() => setActiveTab("ontdekken")}
                   className="bg-[#8b5e34] hover:bg-[#724a29] text-white font-bold py-3 px-8 rounded-full shadow-lg transition"
@@ -405,6 +487,20 @@ export default function Home() {
                 <span className="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-sm font-bold border border-emerald-200">
                   {selectedPlant.maintenance}
                 </span>
+                <div className="relative">
+                  <select
+                    value={selectedPlant.category}
+                    onChange={(e) => updatePlantCategory(selectedPlant.id, e.target.value as "tuin" | "huis" | "natuur")}
+                    className="appearance-none bg-stone-100 text-stone-600 px-3 py-1 pr-8 rounded-full text-sm font-bold border border-stone-200 capitalize cursor-pointer"
+                  >
+                    <option value="tuin">Mijn Tuin</option>
+                    <option value="huis">Mijn Huis</option>
+                    <option value="natuur">Mijn Natuur</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg>
+                  </div>
+                </div>
                 <div className="flex flex-col items-end">
                   <StarRating rating={selectedPlant.rating} />
                   <span className="text-[10px] text-stone-400 uppercase font-black mt-1 tracking-widest">Je Rating</span>
@@ -412,6 +508,13 @@ export default function Home() {
               </div>
 
               <div className="space-y-6">
+                {selectedPlant.databaseImage && (
+                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col items-center">
+                    <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 italic">Identificatie Bevestigd</h3>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedPlant.databaseImage} alt="Bevestigde plant" className="w-full h-48 object-cover rounded-xl shadow-sm" />
+                  </div>
+                )}
                 <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                   <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 italic">Verzorgingsadvies</h3>
                   <p className="text-stone-800 leading-relaxed text-lg font-medium">{selectedPlant.tips}</p>
