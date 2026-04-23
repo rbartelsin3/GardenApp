@@ -72,12 +72,13 @@ export async function POST(req: Request) {
     const prompt = `
       Identificeer de plant, struik of boom op deze foto.
       Geef het resultaat terug in dit exacte JSON formaat (alleen de JSON).
-      Gebruik de volgende veldnamen: commonName, scientificName, maintenance, category, tips.
+      Gebruik de volgende veldnamen: commonName, scientificName, maintenance, category, tips, problems.
       - commonName: De meest gebruikte Nederlandse naam.
       - scientificName: De wetenschappelijke (Latijnse) naam.
       - maintenance: Kies uit: Zeer makkelijk, Lekker makkelijk, Gemiddeld, Uitdagend.
       - category: Kies uit: tuin, huis, natuur.
-      - tips: Geef kort en krachtig 2 of 3 verzorgingstips in het Nederlands.
+      - tips: Geef kort en krachtig 2 of 3 algemene verzorgingstips in het Nederlands.
+      - problems: Geef een array met de 3 meest voorkomende problemen bij deze plant. Elk object in de array moet een 'problem' (korte naam van het probleem) en een 'tip' (korte tip om het te voorkomen/verhelpen) hebben.
 
       Voorbeeld:
       {
@@ -85,7 +86,21 @@ export async function POST(req: Request) {
         "scientificName": "Ulmus glabra 'Lutescens'",
         "maintenance": "Lekker makkelijk",
         "category": "tuin",
-        "tips": "Houd de grond licht vochtig. Prefereert een zonnige standplaats. Snoei in de late herfst om de vorm te behouden."
+        "tips": "Houd de grond licht vochtig. Prefereert een zonnige standplaats. Snoei in de late herfst om de vorm te behouden.",
+        "problems": [
+          {
+            "problem": "Gele bladeren",
+            "tip": "Dit kan komen door te veel of te weinig water. Controleer de vochtigheid van de grond en pas de watergift aan."
+          },
+          {
+            "problem": "Bladluis",
+            "tip": "Bestrijd bladluis met een mengsel van water en zeep of met natuurlijke vijanden zoals lieveheersbeestjes."
+          },
+          {
+            "problem": "Meeldauw",
+            "tip": "Zorg voor een goede luchtcirculatie en vermijd water op de bladeren. Verwijder aangetaste delen van de plant."
+          }
+        ]
       }
     `;
 

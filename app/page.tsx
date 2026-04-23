@@ -13,6 +13,7 @@ interface SavedPlant {
   databaseImage?: string;
   date: string;
   rating: number;
+  problems: { problem: string; tip: string }[];
 }
 
 export default function Home() {
@@ -90,6 +91,7 @@ export default function Home() {
         databaseImage: data.databaseImage,
         date: new Date().toLocaleDateString("nl-NL"),
         rating: 0,
+        problems: data.problems || [],
       };
       setScanResult(newPlant);
       setSelectedCategoryForNewPlant(newPlant.category);
@@ -149,6 +151,17 @@ export default function Home() {
     }
   };
 
+  const updatePlantRating = (id: string, rating: number) => {
+    const updatedPlants = savedPlants.map(plant =>
+      plant.id === id ? { ...plant, rating } : plant
+    );
+    setSavedPlants(updatedPlants);
+    localStorage.setItem("mijn-tuin", JSON.stringify(updatedPlants));
+    if (selectedPlant && selectedPlant.id === id) {
+      setSelectedPlant(prev => prev ? { ...prev, rating } : null);
+    }
+  };
+
   const StarRating = ({ rating, onRate, interactive = false }: { rating: number, onRate?: (r: number) => void, interactive?: boolean }) => {
     return (
       <div className="flex gap-1">
@@ -167,6 +180,41 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.382-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
             </svg>
           </button>
+        ))}
+      </div>
+    );
+  };
+
+  const ProblemsAccordion = ({ problems }: { problems: { problem: string; tip: string }[] }) => {
+    const [openProblem, setOpenProblem] = useState<number | null>(null);
+
+    if (!problems || problems.length === 0) return null;
+
+    return (
+      <div className="space-y-3 mt-6">
+        <h3 className="text-sm font-black text-stone-500 uppercase tracking-wider">Veelvoorkomende Problemen</h3>
+        {problems.map((p, index) => (
+          <div key={index} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+            <button
+              onClick={() => setOpenProblem(openProblem === index ? null : index)}
+              className="w-full text-left p-4 flex justify-between items-center font-bold text-stone-800"
+            >
+              <span>{p.problem}</span>
+              <svg
+                className={`w-5 h-5 transition-transform ${openProblem === index ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {openProblem === index && (
+              <div className="px-4 pb-4 text-stone-600">
+                <p>{p.tip}</p>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     );
@@ -211,6 +259,7 @@ export default function Home() {
                   <div className="flex items-center gap-2 mb-6"><span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-md text-sm font-bold border border-emerald-200">{scanResult.maintenance}</span><div className="relative"><select value={selectedCategoryForNewPlant} onChange={(e) => setSelectedCategoryForNewPlant(e.target.value as "tuin" | "huis" | "natuur")} className="appearance-none bg-stone-100 text-stone-600 px-3 py-1 pr-8 rounded-md text-sm font-bold border border-stone-200 capitalize cursor-pointer"><option value="tuin">Mijn Tuin</option><option value="huis">Mijn Huis</option><option value="natuur">Mijn Natuur</option></select><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-stone-600"><svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.061 6.89l-1.414 1.414L9.293 12.95z"/></svg></div></div></div>
                   <div className="flex flex-col sm:flex-row gap-4 mb-8"><div className="flex-1 bg-stone-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-stone-100"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2">Jouw Foto</h3>{scanResult.image && (<img src={scanResult.image} alt="Jouw scan" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div><div className="flex-1 bg-emerald-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-100"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2">Match Suggestie</h3>{scanResult.databaseImage && (<img src={scanResult.databaseImage} alt="Database match" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div></div>
                   <div className="space-y-4"><div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 italic">Onze Tip</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">&quot;{scanResult.tips}&quot;</p></div></div>
+                  <ProblemsAccordion problems={scanResult.problems} />
                   <div className="flex gap-4 mt-8"><button onClick={savePlant} className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-100">Ja, klopt! Opslaan in Mijn {selectedCategoryForNewPlant === "tuin" ? "Tuin" : selectedCategoryForNewPlant === "huis" ? "Huis" : "Natuur"}</button><button onClick={() => setScanResult(null)} className="px-6 py-4 text-stone-400 hover:text-stone-600 font-bold">Nee, klopt niet</button></div>
                 </div>
               </div>
@@ -296,10 +345,11 @@ export default function Home() {
               <div className="space-y-6">
                 {selectedPlant.databaseImage && (<div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col items-center"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 italic">Identificatie Bevestigd</h3><img src={selectedPlant.databaseImage} alt="Bevestigde plant" className="w-full h-48 object-cover rounded-xl shadow-sm" /></div>)}
                 <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 italic">Verzorgingsadvies</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">{selectedPlant.tips}</p></div>
+                <ProblemsAccordion problems={selectedPlant.problems} />
               </div>
               <div className="mt-8 pt-6 border-t border-stone-200 flex flex-col items-center">
                 <h3 className="text-sm font-black text-stone-500 uppercase tracking-wider mb-3">Jouw Beoordeling</h3>
-                <StarRating rating={selectedPlant.rating} interactive={false} />
+                <StarRating rating={selectedPlant.rating} interactive={true} onRate={(rating) => updatePlantRating(selectedPlant.id, rating)} />
               </div>
               <div className="text-center mt-4"><p className="text-xs text-stone-400 font-bold">Gescand op {selectedPlant.date}</p></div>
               <button onClick={() => setSelectedPlant(null)} className="w-full mt-8 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl shadow-lg transition transform active:scale-95">Sluiten</button>
