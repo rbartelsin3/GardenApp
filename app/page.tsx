@@ -222,7 +222,7 @@ export default function Home() {
     );
   };
 
-  const PruningAccordion = ({ pruning }: { pruning: { months: string[]; method: string; apply: string } }) => {
+  const PruningAccordion = ({ pruning }: { pruning: { months: string[]; method: string; apply: string; image?: string } }) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
 
     if (!pruning || !pruning.months || pruning.months.length === 0) return null;
