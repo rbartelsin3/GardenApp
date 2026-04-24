@@ -14,6 +14,7 @@ interface SavedPlant {
   date: string;
   rating: number;
   problems: { problem: string; tip: string }[];
+  pruning: { months: string[]; method: string; apply: string; image?: string };
 }
 
 export default function Home() {
@@ -92,6 +93,7 @@ export default function Home() {
         date: new Date().toLocaleDateString("nl-NL"),
         rating: 0,
         problems: data.problems || [],
+        pruning: data.pruning || { months: [], method: '', apply: '', image: '' },
       };
       setScanResult(newPlant);
       setSelectedCategoryForNewPlant(newPlant.category);
@@ -220,6 +222,62 @@ export default function Home() {
     );
   };
 
+  const PruningAccordion = ({ pruning }: { pruning: { months: string[]; method: string; apply: string } }) => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+
+    if (!pruning || !pruning.months || pruning.months.length === 0) return null;
+
+    return (
+      <div className="space-y-3 mt-6">
+        <h3 className="text-sm font-black text-stone-500 uppercase tracking-wider">Snoeigids</h3>
+        <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full text-left p-4 flex justify-between items-center font-bold text-stone-800"
+          >
+            <span>Wanneer & Hoe Snoeien?</span>
+            <svg
+              className={`w-5 h-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isOpen && (
+            <div className="px-4 pb-4 text-stone-600 space-y-4">
+              <div>
+                <h4 className="font-bold text-stone-800 mb-1">Snoeimaanden:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {pruning.months.map((month) => (
+                    <span key={month} className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-md text-sm font-bold border border-emerald-200 capitalize">
+                      {month}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-stone-800 mb-1">Methode:</h4>
+                <p>{pruning.method}</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-stone-800 mb-1">Toepassing:</h4>
+                <p>{pruning.apply}</p>
+              </div>
+              {pruning.image && (
+                <div>
+                  <h4 className="font-bold text-stone-800 mb-1">Illustratie:</h4>
+                  <img src={pruning.image} alt="Snoei-illustratie" className="w-full h-auto rounded-xl shadow-sm mt-2" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const DecorativePlants = () => (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-20">
       <svg className="absolute -top-10 -left-10 w-48 h-48 text-emerald-800 rotate-12" viewBox="0 0 100 100" fill="currentColor"><path d="M50 50c0-15 10-25 20-25s20 10 20 25-10 25-20 25-20-10-20-25zM50 50c15 0 25 10 25 20s-10 20-25 20-25-10-25-20 10-20 25-20zM50 50c0 15-10 25-20 25s-20-10-20-25 10-25 20-25 20 10 20 25zM50 50c-15 0-25-10-25-20s10-20 25-20 25 10 25 20-10 20-25 20z" /><circle cx="50" cy="50" r="10" fill="#8b5e34" /></svg>
@@ -260,6 +318,7 @@ export default function Home() {
                   <div className="flex flex-col sm:flex-row gap-4 mb-8"><div className="flex-1 bg-stone-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-stone-100"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2">Jouw Foto</h3>{scanResult.image && (<img src={scanResult.image} alt="Jouw scan" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div><div className="flex-1 bg-emerald-50 rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-100"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-2">Match Suggestie</h3>{scanResult.databaseImage && (<img src={scanResult.databaseImage} alt="Database match" className="w-full h-48 object-cover rounded-xl shadow-sm" />)}</div></div>
                   <div className="space-y-4"><div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 italic">Onze Tip</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">&quot;{scanResult.tips}&quot;</p></div></div>
                   <ProblemsAccordion problems={scanResult.problems} />
+                  <PruningAccordion pruning={scanResult.pruning} />
                   <div className="flex gap-4 mt-8"><button onClick={savePlant} className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-emerald-100">Ja, klopt! Opslaan in Mijn {selectedCategoryForNewPlant === "tuin" ? "Tuin" : selectedCategoryForNewPlant === "huis" ? "Huis" : "Natuur"}</button><button onClick={() => setScanResult(null)} className="px-6 py-4 text-stone-400 hover:text-stone-600 font-bold">Nee, klopt niet</button></div>
                 </div>
               </div>
@@ -346,6 +405,7 @@ export default function Home() {
                 {selectedPlant.databaseImage && (<div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 shadow-sm flex flex-col items-center"><h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 italic">Identificatie Bevestigd</h3><img src={selectedPlant.databaseImage} alt="Bevestigde plant" className="w-full h-48 object-cover rounded-xl shadow-sm" /></div>)}
                 <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm"><h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 italic">Verzorgingsadvies</h3><p className="text-stone-800 leading-relaxed text-lg font-medium">{selectedPlant.tips}</p></div>
                 <ProblemsAccordion problems={selectedPlant.problems} />
+                <PruningAccordion pruning={selectedPlant.pruning} />
               </div>
               <div className="mt-8 pt-6 border-t border-stone-200 flex flex-col items-center">
                 <h3 className="text-sm font-black text-stone-500 uppercase tracking-wider mb-3">Jouw Beoordeling</h3>

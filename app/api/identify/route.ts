@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       - category: Kies uit: tuin, huis, natuur.
       - tips: Geef kort en krachtig 2 of 3 algemene verzorgingstips in het Nederlands.
       - problems: Geef een array met de 3 meest voorkomende problemen bij deze plant. Elk object in de array moet een 'problem' (korte naam van het probleem) en een 'tip' (korte tip om het te voorkomen/verhelpen) hebben.
+      - pruning: Geef een object met snoeiadvies. Dit object moet de volgende velden hebben: 'months' (een array van de maanden waarin de plant gesnoeid kan worden, bijv. ['maart', 'april']), 'method' (een korte beschrijving van de snoeimethode), 'apply' (een korte beschrijving van hoe ver de plant gesnoeid moet worden), en een optioneel 'image' veld met een URL naar een relevante, rechtenvrije illustratie van de snoeitechniek (bij voorkeur van Wikipedia of een andere openbare bron).
 
       Voorbeeld:
       {
@@ -100,7 +101,13 @@ export async function POST(req: Request) {
             "problem": "Meeldauw",
             "tip": "Zorg voor een goede luchtcirculatie en vermijd water op de bladeren. Verwijder aangetaste delen van de plant."
           }
-        ]
+        ],
+        "pruning": {
+          "months": ["februari", "maart"],
+          "method": "Snoei dode, beschadigde of kruisende takken weg. Verwijder ook scheuten die vanuit de onderstam groeien.",
+          "apply": "Knip takken terug tot op een gezonde knop of zijtak. Verwijder maximaal een derde van de totale lengte van de tak.",
+          "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Pruning_tree_illustration.svg/300px-Pruning_tree_illustration.svg.png"
+        }
       }
     `;
 
